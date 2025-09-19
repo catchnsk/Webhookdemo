@@ -1,6 +1,5 @@
 import { WebhookEvent, WebhookSubscription, WebhookStats, Admin } from '../types/webhook';
-
-const API_BASE_URL = 'http://localhost:8080/api';
+import { getApiUrl, createAuthHeader } from './apiConfig';
 
 // Helper function to handle API responses
 const handleResponse = async (response: Response) => {
@@ -20,11 +19,11 @@ const handleResponse = async (response: Response) => {
 const makeRequest = async (url: string, options: RequestInit = {}) => {
   const defaultHeaders = {
     'Content-Type': 'application/json',
-    'Authorization': 'Basic ' + btoa('admin:password'), // Basic auth
+    'Authorization': createAuthHeader(),
     ...options.headers,
   };
 
-  const response = await fetch(`${API_BASE_URL}${url}`, {
+  const response = await fetch(getApiUrl(url), {
     ...options,
     headers: defaultHeaders,
   });
@@ -170,7 +169,7 @@ export class WebhookApi {
 
   // Admin methods
   static async registerAdmin(adminData: { email: string; name: string; password: string }): Promise<Admin> {
-    const response = await fetch(`${API_BASE_URL}/admin/register`, {
+    const response = await fetch(getApiUrl('/admin/register'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -191,7 +190,7 @@ export class WebhookApi {
   }
 
   static async loginAdmin(email: string, password: string): Promise<Admin> {
-    const response = await fetch(`${API_BASE_URL}/admin/login`, {
+    const response = await fetch(getApiUrl('/admin/login'), {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
