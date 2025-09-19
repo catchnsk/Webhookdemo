@@ -18,12 +18,16 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.TimeUnit;
 
 @Service
 public class WebhookDeliveryService {
     
     @Autowired
     private WebhookEventRepository eventRepository;
+    
+    @Autowired
+    private KafkaProducerService kafkaProducerService;
     
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -34,6 +38,20 @@ public class WebhookDeliveryService {
         if (eventOpt.isPresent()) {
             WebhookEvent event = eventOpt.get();
             deliverWebhookEvent(event);
+        }
+    }
+    
+    @Async
+    public void deliverWebhookWithDelay(Long eventId, Integer attemptNumber) {
+        try {
+            // Exponential backoff: 2^attempt seconds
+            long delaySeconds = (long) Math.pow(2, attemptNumber != null ? attemptNumber : 1);
+            TimeUnit.SECONDS.sleep(delaySeconds);
+            
+            deliverWebhook(eventId);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            logger.error("Retry delivery interrupted for event {}", eventId);
         }
     }
     
@@ -83,6 +101,9 @@ public class WebhookDeliveryService {
             event.setErrorMessage(null);
             event.setUpdatedAt(LocalDateTime.now());
             
+            // Publish success notification to Kafka
+            kafkaProducerService.publishWebhookNotification(event, "SUCCESS");
+            
         } catch (Exception e) {
             long responseTime = System.currentTimeMillis() - startTime;
             
@@ -96,6 +117,9 @@ public class WebhookDeliveryService {
             // If we haven't reached max attempts, set status to pending for retry
             if (event.getAttempts() < event.getMaxAttempts()) {
                 event.setStatus(WebhookEvent.EventStatus.PENDING);
+            } else {
+                // Publish failure notification to Kafka
+                kafkaProducerService.publishWebhookNotification(event, "FAILURE");
             }
         }
         

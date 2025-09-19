@@ -1,6 +1,6 @@
 # Webhook Management System
 
-A comprehensive webhook management system with React frontend and Spring Boot backend.
+A comprehensive webhook management system with React frontend, Spring Boot backend, and Kafka message processing.
 
 ## Features
 
@@ -9,6 +9,7 @@ A comprehensive webhook management system with React frontend and Spring Boot ba
 - **Events Monitor**: Real-time tracking and monitoring
 - **Statistics**: Analytics and performance metrics
 - **Admin Panel**: User management and authentication
+- **Kafka Integration**: Asynchronous message processing for scalability
 
 ## Frontend Setup
 
@@ -27,13 +28,30 @@ cp .env.example .env
 npm run dev
 ```
 
-## Backend Integration
+## Backend & Kafka Integration
 
-The frontend is configured to work with the Spring Boot backend:
+The system uses Apache Kafka for asynchronous webhook processing:
 
 - **API Base URL**: `http://localhost:8080/api`
 - **Authentication**: Basic Auth (admin/password)
 - **CORS**: Enabled for development
+- **Kafka Topics**: 
+  - `webhook-events`: New webhook events
+  - `webhook-notifications`: Status notifications
+  - `webhook-retries`: Retry processing
+
+### Prerequisites
+
+1. **Apache Kafka**: Download and start Kafka server
+```bash
+# Start Zookeeper
+bin/zookeeper-server-start.sh config/zookeeper.properties
+
+# Start Kafka Server
+bin/kafka-server-start.sh config/server.properties
+```
+
+2. **SQL Server**: Database for persistence
 
 ### API Endpoints Used:
 
@@ -48,6 +66,14 @@ The frontend is configured to work with the Spring Boot backend:
 - `POST /api/admin/register` - Register admin
 - `POST /api/admin/login` - Admin login
 
+### Kafka Features
+
+- **Asynchronous Processing**: Webhook events are processed via Kafka queues
+- **Retry Mechanism**: Failed webhooks are automatically retried with exponential backoff
+- **Real-time Notifications**: Status updates are published to notification topics
+- **Scalability**: Multiple consumer instances can process events in parallel
+- **Reliability**: Message acknowledgment ensures no events are lost
+
 ## Development
 
 The app includes:
@@ -55,6 +81,7 @@ The app includes:
 - Error handling and user feedback
 - Loading states and form validation
 - Responsive design with Tailwind CSS
+- Kafka-powered real-time processing indicators
 
 ## Production Deployment
 
@@ -66,3 +93,5 @@ npm run build
 2. Update API base URL in production environment
 3. Configure CORS settings in Spring Boot backend
 4. Set up proper authentication and security
+5. Configure Kafka cluster for production
+6. Set up monitoring for Kafka topics and consumers

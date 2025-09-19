@@ -29,6 +29,9 @@ public class WebhookEventService {
     @Autowired
     private WebhookDeliveryService deliveryService;
     
+    @Autowired
+    private KafkaProducerService kafkaProducerService;
+    
     public WebhookEventDto createEvent(WebhookEventDto eventDto) {
         WebhookEvent event = new WebhookEvent();
         event.setUrl(eventDto.getUrl());
@@ -41,8 +44,8 @@ public class WebhookEventService {
         
         WebhookEvent savedEvent = eventRepository.save(event);
         
-        // Trigger async delivery
-        deliveryService.deliverWebhook(savedEvent.getId());
+        // Publish event to Kafka for async processing
+        kafkaProducerService.publishWebhookEvent(savedEvent);
         
         return new WebhookEventDto(savedEvent);
     }
@@ -83,8 +86,8 @@ public class WebhookEventService {
                 event.setErrorMessage(null);
                 WebhookEvent savedEvent = eventRepository.save(event);
                 
-                // Trigger async retry
-                deliveryService.deliverWebhook(savedEvent.getId());
+                // Publish retry event to Kafka
+                kafkaProducerService.publishRetryEvent(savedEvent);
                 
                 return new WebhookEventDto(savedEvent);
             } else {

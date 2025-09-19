@@ -48,3 +48,30 @@ logging:
     org.springframework.security: DEBUG
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+
+# Kafka Configuration
+spring:
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false
+    consumer:
+      group-id: webhook-consumer-group
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: "com.webhookdemo.dto"
+        spring.json.use.type.headers: false
+        spring.json.value.default.type: com.webhookdemo.dto.WebhookNotificationDto
+    listener:
+      ack-mode: manual_immediate
+
+# Kafka Topics
+kafka:
+  topics:
+    webhook-events: webhook-events
+    webhook-notifications: webhook-notifications
+    webhook-retries: webhook-retries

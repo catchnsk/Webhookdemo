@@ -9,7 +9,8 @@ import {
   CheckCircle,
   XCircle,
   Clock,
-  AlertTriangle
+  AlertTriangle,
+  Zap
 } from 'lucide-react';
 
 const EventsMonitor: React.FC = () => {
@@ -141,6 +142,12 @@ const EventsMonitor: React.FC = () => {
 
       {/* Filters */}
       <div className="bg-white rounded-lg shadow-md border border-gray-200 p-6 mb-6">
+        <div className="flex items-center gap-2 mb-4">
+          <Zap className="h-5 w-5 text-yellow-500" />
+          <span className="text-sm font-medium text-gray-700">
+            Real-time event processing powered by Kafka
+          </span>
+        </div>
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
             <div className="relative">

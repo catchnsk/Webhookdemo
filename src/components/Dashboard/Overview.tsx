@@ -6,7 +6,8 @@ import {
   CheckCircle, 
   XCircle, 
   Clock,
-  TrendingUp
+  TrendingUp,
+  Zap
 } from 'lucide-react';
 
 const Overview: React.FC = () => {
@@ -76,8 +77,14 @@ const Overview: React.FC = () => {
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h2 className="text-3xl font-bold text-gray-900 mb-2">Dashboard Overview</h2>
-        <p className="text-gray-600">Monitor your webhook activity and performance</p>
+        <div className="flex items-center gap-3 mb-2">
+          <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
+          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 rounded-full">
+            <Zap className="h-4 w-4 text-yellow-600" />
+            <span className="text-xs font-medium text-yellow-800">Kafka Enabled</span>
+          </div>
+        </div>
+        <p className="text-gray-600">Monitor your webhook activity and performance with real-time Kafka processing</p>
       </div>
 
       {/* Stats Cards */}
