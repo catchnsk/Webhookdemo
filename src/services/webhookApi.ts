@@ -1,194 +1,221 @@
 import { WebhookEvent, WebhookSubscription, WebhookStats, Admin } from '../types/webhook';
 
-// Mock data for demonstration
-const mockEvents: WebhookEvent[] = [
-  {
-    id: '1',
-    url: 'https://api.example.com/webhooks/user-created',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Webhook-Secret': 'secret123' },
-    payload: { userId: '123', action: 'user.created' },
-    status: 'success',
-    attempts: 1,
-    maxAttempts: 3,
-    createdAt: '2025-01-27T10:30:00Z',
-    updatedAt: '2025-01-27T10:30:05Z',
-    responseTime: 150
-  },
-  {
-    id: '2',
-    url: 'https://api.partner.com/notifications',
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    payload: { orderId: '456', status: 'completed' },
-    status: 'failed',
-    attempts: 3,
-    maxAttempts: 3,
-    createdAt: '2025-01-27T09:15:00Z',
-    updatedAt: '2025-01-27T09:45:00Z',
-    errorMessage: 'Connection timeout'
-  }
-];
+const API_BASE_URL = 'http://localhost:8080/api';
 
-const mockSubscriptions: WebhookSubscription[] = [
-  {
-    id: '1',
-    name: 'User Management Webhook',
-    url: 'https://api.example.com/webhooks/user-events',
-    events: ['user.created', 'user.updated', 'user.deleted'],
-    secret: 'webhook_secret_123',
-    isActive: true,
-    createdAt: '2025-01-20T08:00:00Z',
-    updatedAt: '2025-01-27T10:00:00Z'
-  },
-  {
-    id: '2',
-    name: 'Order Processing Webhook',
-    url: 'https://api.partner.com/notifications',
-    events: ['order.created', 'order.completed', 'order.cancelled'],
-    secret: 'webhook_secret_456',
-    isActive: false,
-    createdAt: '2025-01-18T14:30:00Z',
-    updatedAt: '2025-01-26T16:20:00Z'
+// Helper function to handle API responses
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`HTTP ${response.status}: ${errorText || response.statusText}`);
   }
-];
+  
+  const contentType = response.headers.get('content-type');
+  if (contentType && contentType.includes('application/json')) {
+    return response.json();
+  }
+  return response.text();
+};
+
+// Helper function to make authenticated requests
+const makeRequest = async (url: string, options: RequestInit = {}) => {
+  const defaultHeaders = {
+    'Content-Type': 'application/json',
+    'Authorization': 'Basic ' + btoa('admin:password'), // Basic auth
+    ...options.headers,
+  };
+
+  const response = await fetch(`${API_BASE_URL}${url}`, {
+    ...options,
+    headers: defaultHeaders,
+  });
+
+  return handleResponse(response);
+};
 
 export class WebhookApi {
   // Publisher methods
   static async publishEvent(eventData: Omit<WebhookEvent, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookEvent> {
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    const event: WebhookEvent = {
-      ...eventData,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    const payload = {
+      url: eventData.url,
+      method: eventData.method,
+      headers: JSON.stringify(eventData.headers),
+      payload: JSON.stringify(eventData.payload),
+      maxAttempts: eventData.maxAttempts || 3
     };
-    
-    mockEvents.unshift(event);
-    return event;
+
+    const response = await makeRequest('/events', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      ...response,
+      id: response.id.toString(),
+      headers: JSON.parse(response.headers || '{}'),
+      payload: JSON.parse(response.payload || '{}'),
+      createdAt: response.createdAt,
+      updatedAt: response.updatedAt
+    };
   }
 
   static async getEvents(): Promise<WebhookEvent[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return [...mockEvents];
+    const response = await makeRequest('/events');
+    
+    return response.map((event: any) => ({
+      ...event,
+      id: event.id.toString(),
+      headers: JSON.parse(event.headers || '{}'),
+      payload: JSON.parse(event.payload || '{}'),
+      status: event.status.toLowerCase()
+    }));
   }
 
   static async retryEvent(eventId: string): Promise<WebhookEvent> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const eventIndex = mockEvents.findIndex(e => e.id === eventId);
-    if (eventIndex !== -1) {
-      mockEvents[eventIndex] = {
-        ...mockEvents[eventIndex],
-        attempts: mockEvents[eventIndex].attempts + 1,
-        status: Math.random() > 0.5 ? 'success' : 'failed',
-        updatedAt: new Date().toISOString()
-      };
-      return mockEvents[eventIndex];
-    }
-    throw new Error('Event not found');
+    const response = await makeRequest(`/events/${eventId}/retry`, {
+      method: 'POST',
+    });
+
+    return {
+      ...response,
+      id: response.id.toString(),
+      headers: JSON.parse(response.headers || '{}'),
+      payload: JSON.parse(response.payload || '{}'),
+      status: response.status.toLowerCase()
+    };
   }
 
   // Consumer methods
   static async getSubscriptions(): Promise<WebhookSubscription[]> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    return [...mockSubscriptions];
+    const response = await makeRequest('/subscriptions');
+    
+    return response.map((subscription: any) => ({
+      ...subscription,
+      id: subscription.id.toString(),
+      events: Array.from(subscription.events || [])
+    }));
   }
 
   static async createSubscription(subscription: Omit<WebhookSubscription, 'id' | 'createdAt' | 'updatedAt'>): Promise<WebhookSubscription> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    const newSubscription: WebhookSubscription = {
-      ...subscription,
-      id: Math.random().toString(36).substr(2, 9),
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
+    const payload = {
+      name: subscription.name,
+      url: subscription.url,
+      events: subscription.events,
+      secret: subscription.secret,
+      isActive: subscription.isActive
     };
-    
-    mockSubscriptions.push(newSubscription);
-    return newSubscription;
+
+    const response = await makeRequest('/subscriptions', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      ...response,
+      id: response.id.toString(),
+      events: Array.from(response.events || [])
+    };
   }
 
   static async updateSubscription(id: string, updates: Partial<WebhookSubscription>): Promise<WebhookSubscription> {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    
-    const index = mockSubscriptions.findIndex(s => s.id === id);
-    if (index !== -1) {
-      mockSubscriptions[index] = {
-        ...mockSubscriptions[index],
-        ...updates,
-        updatedAt: new Date().toISOString()
-      };
-      return mockSubscriptions[index];
-    }
-    throw new Error('Subscription not found');
+    const payload = {
+      name: updates.name,
+      url: updates.url,
+      events: updates.events,
+      secret: updates.secret,
+      isActive: updates.isActive
+    };
+
+    const response = await makeRequest(`/subscriptions/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(payload),
+    });
+
+    return {
+      ...response,
+      id: response.id.toString(),
+      events: Array.from(response.events || [])
+    };
   }
 
   static async deleteSubscription(id: string): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    const index = mockSubscriptions.findIndex(s => s.id === id);
-    if (index !== -1) {
-      mockSubscriptions.splice(index, 1);
-    }
+    await makeRequest(`/subscriptions/${id}`, {
+      method: 'DELETE',
+    });
   }
 
   // Stats methods
   static async getStats(): Promise<WebhookStats> {
-    await new Promise(resolve => setTimeout(resolve, 300));
+    const response = await makeRequest('/events/stats');
     
-    const totalEvents = mockEvents.length;
-    const successfulEvents = mockEvents.filter(e => e.status === 'success').length;
-    const failedEvents = mockEvents.filter(e => e.status === 'failed').length;
-    const avgResponseTime = mockEvents
-      .filter(e => e.responseTime)
-      .reduce((sum, e) => sum + (e.responseTime || 0), 0) / 
-      mockEvents.filter(e => e.responseTime).length || 0;
-
     return {
-      totalEvents,
-      successfulEvents,
-      failedEvents,
-      averageResponseTime: Math.round(avgResponseTime),
+      totalEvents: response.totalEvents || 0,
+      successfulEvents: response.successfulEvents || 0,
+      failedEvents: response.failedEvents || 0,
+      averageResponseTime: Math.round(response.averageResponseTime || 0),
       eventsByStatus: {
-        pending: mockEvents.filter(e => e.status === 'pending').length,
-        success: successfulEvents,
-        failed: failedEvents,
-        retrying: mockEvents.filter(e => e.status === 'retrying').length
+        pending: response.eventsByStatus?.pending || 0,
+        success: response.eventsByStatus?.success || 0,
+        failed: response.eventsByStatus?.failed || 0,
+        retrying: response.eventsByStatus?.retrying || 0
       },
-      recentEvents: mockEvents.slice(0, 10)
+      recentEvents: (response.recentEvents || []).map((event: any) => ({
+        ...event,
+        id: event.id.toString(),
+        headers: JSON.parse(event.headers || '{}'),
+        payload: JSON.parse(event.payload || '{}'),
+        status: event.status.toLowerCase()
+      }))
     };
   }
 
   // Admin methods
   static async registerAdmin(adminData: { email: string; name: string; password: string }): Promise<Admin> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
+    const response = await fetch(`${API_BASE_URL}/admin/register`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(adminData),
+    });
+
+    if (!response.ok) {
+      throw new Error('Registration failed');
+    }
+
+    const admin = await response.json();
     return {
-      id: Math.random().toString(36).substr(2, 9),
-      email: adminData.email,
-      name: adminData.name,
-      role: 'admin',
-      createdAt: new Date().toISOString()
+      ...admin,
+      id: admin.id.toString(),
+      role: admin.role.toLowerCase()
     };
   }
 
   static async loginAdmin(email: string, password: string): Promise<Admin> {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    
-    // Mock authentication
-    if (email === 'admin@webhook.com' && password === 'password') {
-      return {
-        id: '1',
-        email: 'admin@webhook.com',
-        name: 'Admin User',
-        role: 'admin',
-        createdAt: '2025-01-01T00:00:00Z',
-        lastLogin: new Date().toISOString()
-      };
+    const response = await fetch(`${API_BASE_URL}/admin/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email, password }),
+    });
+
+    if (!response.ok) {
+      throw new Error('Invalid credentials');
     }
-    throw new Error('Invalid credentials');
+
+    const admin = await response.json();
+    return {
+      ...admin,
+      id: admin.id.toString(),
+      role: admin.role.toLowerCase()
+    };
+  }
+
+  // Error handling helper
+  static handleError(error: any): string {
+    if (error.message) {
+      return error.message;
+    }
+    return 'An unexpected error occurred';
   }
 }

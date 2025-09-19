@@ -38,9 +38,13 @@ const WebhookConsumer: React.FC = () => {
     try {
       const subscriptionData = {
         ...formData,
-        events: formData.events.filter(e => e.trim()),
+        events: formData.events.filter(e => e.trim()).filter(Boolean),
         isActive: true
       };
+
+      if (subscriptionData.events.length === 0) {
+        throw new Error('At least one event is required');
+      }
 
       if (editingSubscription) {
         await WebhookApi.updateSubscription(editingSubscription.id, subscriptionData);
@@ -52,6 +56,7 @@ const WebhookConsumer: React.FC = () => {
       await fetchSubscriptions();
     } catch (error) {
       console.error('Error saving subscription:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to save subscription'}`);
     } finally {
       setLoading(false);
     }
@@ -68,7 +73,7 @@ const WebhookConsumer: React.FC = () => {
     setFormData({
       name: subscription.name,
       url: subscription.url,
-      events: subscription.events,
+      events: Array.isArray(subscription.events) ? subscription.events : Array.from(subscription.events),
       secret: subscription.secret
     });
     setShowForm(true);
@@ -184,7 +189,7 @@ const WebhookConsumer: React.FC = () => {
               <div>
                 <label className="block text-xs font-medium text-gray-500 mb-1">Events</label>
                 <div className="flex flex-wrap gap-1">
-                  {subscription.events.map((event, index) => (
+                  {(Array.isArray(subscription.events) ? subscription.events : Array.from(subscription.events)).map((event, index) => (
                     <span key={index} className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded">
                       {event}
                     </span>

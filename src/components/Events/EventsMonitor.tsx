@@ -57,8 +57,10 @@ const EventsMonitor: React.FC = () => {
     try {
       await WebhookApi.retryEvent(eventId);
       await fetchEvents();
+      alert('Event retry initiated successfully!');
     } catch (error) {
       console.error('Error retrying event:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to retry event'}`);
     }
   };
 

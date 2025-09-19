@@ -17,7 +17,7 @@ export interface WebhookSubscription {
   id: string;
   name: string;
   url: string;
-  events: string[];
+  events: string[] | Set<string>;
   secret: string;
   isActive: boolean;
   createdAt: string;
@@ -45,4 +45,9 @@ export interface Admin {
   role: 'admin' | 'viewer';
   createdAt: string;
   lastLogin?: string;
+}
+
+export interface ApiError {
+  message: string;
+  status?: number;
 }

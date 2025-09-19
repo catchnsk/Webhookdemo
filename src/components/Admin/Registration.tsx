@@ -22,22 +22,23 @@ const Registration: React.FC = () => {
         throw new Error('Passwords do not match');
       }
 
-      // Mock authentication logic
       if (isLogin) {
-        if (formData.email === 'admin@webhook.com' && formData.password === 'password') {
-          // Successful login
-          console.log('Login successful');
-        } else {
-          throw new Error('Invalid credentials');
-        }
+        const admin = await WebhookApi.loginAdmin(formData.email, formData.password);
+        console.log('Login successful:', admin);
+        alert('Login successful!');
       } else {
-        // Mock registration
-        console.log('Registration successful');
+        const admin = await WebhookApi.registerAdmin({
+          email: formData.email,
+          name: formData.name,
+          password: formData.password
+        });
+        console.log('Registration successful:', admin);
+        alert('Registration successful! You can now login.');
         setIsLogin(true);
         setFormData({ name: '', email: '', password: '', confirmPassword: '' });
       }
     } catch (err: any) {
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

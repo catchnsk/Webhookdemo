@@ -35,8 +35,20 @@ const WebhookPublisher: React.FC = () => {
     setLoading(true);
 
     try {
-      const headers = JSON.parse(formData.headers);
-      const payload = JSON.parse(formData.payload);
+      let headers: Record<string, string> = {};
+      let payload: any = {};
+      
+      try {
+        headers = JSON.parse(formData.headers);
+      } catch (error) {
+        throw new Error('Invalid JSON in headers');
+      }
+      
+      try {
+        payload = JSON.parse(formData.payload);
+      } catch (error) {
+        throw new Error('Invalid JSON in payload');
+      }
       
       await WebhookApi.publishEvent({
         url: formData.url,
@@ -59,6 +71,7 @@ const WebhookPublisher: React.FC = () => {
       await fetchEvents();
     } catch (error) {
       console.error('Error publishing webhook:', error);
+      alert(`Error: ${error instanceof Error ? error.message : 'Failed to publish webhook'}`);
     } finally {
       setLoading(false);
     }
