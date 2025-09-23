@@ -55,7 +55,7 @@ bin/kafka-server-start.sh config/server.properties
 
 ### API Endpoints Used:
 
-- `POST /api/events` - Publish webhook events
+- `POST /api/events` - Publish webhook events  
 - `GET /api/events` - Get all events
 - `POST /api/events/{id}/retry` - Retry failed events
 - `GET /api/events/stats` - Get statistics
@@ -90,7 +90,7 @@ The app includes:
 npm run build
 ```
 
-2. Update API base URL in production environment
+2. Update API base URL to point directly to your production backend (e.g., `https://api.yourapp.com`)
 3. Configure CORS settings in Spring Boot backend
 4. Set up proper authentication and security
 5. Configure Kafka cluster for production
