@@ -13,14 +13,31 @@ import {
 const Overview: React.FC = () => {
   const [stats, setStats] = useState<WebhookStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchStats = async () => {
       try {
+        setError(null);
         const data = await WebhookApi.getStats();
         setStats(data);
       } catch (error) {
         console.error('Error fetching stats:', error);
+        setError('Unable to connect to the backend server. Please ensure the Spring Boot application is running.');
+        // Set fallback stats when backend is unavailable
+        setStats({
+          totalEvents: 0,
+          successfulEvents: 0,
+          failedEvents: 0,
+          averageResponseTime: 0,
+          eventsByStatus: {
+            pending: 0,
+            success: 0,
+            failed: 0,
+            retrying: 0
+          },
+          recentEvents: []
+        });
       } finally {
         setLoading(false);
       }
@@ -29,7 +46,7 @@ const Overview: React.FC = () => {
     fetchStats();
   }, []);
 
-  if (loading || !stats) {
+  if (loading) {
     return (
       <div className="p-6">
         <div className="animate-pulse">
@@ -38,6 +55,17 @@ const Overview: React.FC = () => {
               <div key={i} className="bg-gray-200 h-24 rounded-lg"></div>
             ))}
           </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="p-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+          <h3 className="text-red-800 font-medium">Connection Error</h3>
+          <p className="text-red-600 text-sm mt-1">{error}</p>
         </div>
       </div>
     );
@@ -76,15 +104,38 @@ const Overview: React.FC = () => {
 
   return (
     <div className="p-6">
+      {error && (
+        <div className="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 bg-yellow-500 rounded-full animate-pulse"></div>
+            <h3 className="text-yellow-800 font-medium">Backend Unavailable</h3>
+          </div>
+          <p className="text-yellow-700 text-sm mt-1">
+            Showing cached data. {error}
+          </p>
+        </div>
+      )}
+      
       <div className="mb-8">
         <div className="flex items-center gap-3 mb-2">
           <h2 className="text-3xl font-bold text-gray-900">Dashboard Overview</h2>
-          <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 rounded-full">
-            <Zap className="h-4 w-4 text-yellow-600" />
-            <span className="text-xs font-medium text-yellow-800">Kafka Enabled</span>
+          <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${
+            error ? 'bg-red-100' : 'bg-yellow-100'
+          }`}>
+            <Zap className={`h-4 w-4 ${error ? 'text-red-600' : 'text-yellow-600'}`} />
+            <span className={`text-xs font-medium ${
+              error ? 'text-red-800' : 'text-yellow-800'
+            }`}>
+              {error ? 'Offline Mode' : 'Kafka Enabled'}
+            </span>
           </div>
         </div>
-        <p className="text-gray-600">Monitor your webhook activity and performance with real-time Kafka processing</p>
+        <p className="text-gray-600">
+          {error 
+            ? 'Dashboard is in offline mode. Start the backend server to see live data.'
+            : 'Monitor your webhook activity and performance with real-time Kafka processing'
+          }
+        </p>
       </div>
 
       {/* Stats Cards */}
