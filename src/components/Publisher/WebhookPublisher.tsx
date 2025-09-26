@@ -8,6 +8,7 @@ const WebhookPublisher: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     url: '',
+    schemaNo: '',
     method: 'POST' as const,
     headers: '{"Content-Type": "application/json"}',
     payload: '{"event": "test", "data": {}}'
@@ -63,6 +64,7 @@ const WebhookPublisher: React.FC = () => {
       // Reset form
       setFormData({
         url: '',
+        schemaNo: '',
         method: 'POST',
         headers: '{"Content-Type": "application/json"}',
         payload: '{"event": "test", "data": {}}'
@@ -120,6 +122,19 @@ const WebhookPublisher: React.FC = () => {
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   placeholder="https://api.example.com/webhook"
                   required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Schema No
+                </label>
+                <input
+                  type="text"
+                  value={formData.schemaNo}
+                  onChange={(e) => setFormData({ ...formData, schemaNo: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  placeholder="Enter schema number"
                 />
               </div>
 
