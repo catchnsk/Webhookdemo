@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { WebhookApi } from '../../services/webhookApi';
 import { User, Mail, Lock, UserPlus } from 'lucide-react';
 
 const Registration: React.FC = () => {
